@@ -51,7 +51,7 @@ public class AuditMissionController {
     // ===== READ (By auditor userCode) - ADMIN ONLY =====
     @GetMapping("/auditeur/{userCode}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<AuditMission>> getByAuditeur(@PathVariable Integer userCode) {
+    public ResponseEntity<List<AuditMission>> getByAuditeur(@PathVariable String userCode) {
         return ResponseEntity.ok(auditMissionService.findByAuditeurCode(userCode));
     }
 
@@ -105,7 +105,7 @@ public class AuditMissionController {
     @GetMapping("/auditeur/me/{userCode}")
     @PreAuthorize("hasRole('AUDITEUR')")
     public ResponseEntity<Page<AuditMission>> getMyMissions(
-            @PathVariable Integer userCode,
+            @PathVariable String userCode,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,

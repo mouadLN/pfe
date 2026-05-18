@@ -37,12 +37,23 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
     List<Store> searchByKeyword(@Param("keyword") String keyword);
 
     // Search with pagination and sorting
-    @Query("SELECT s FROM Store s WHERE " +
+    @Query(value = "SELECT * FROM stores s WHERE " +
             "(:keyword IS NULL OR " +
-            "LOWER(s.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(s.ville) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(s.region) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-            "AND (:actif IS NULL OR s.actif = :actif)")
+            "LOWER(CAST(s.nom AS text)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CAST(s.code AS text)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CAST(s.adresse AS text)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CAST(s.ville AS text)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CAST(s.region AS text)) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (:actif IS NULL OR s.actif = :actif)",
+            countQuery = "SELECT COUNT(*) FROM stores s WHERE " +
+                    "(:keyword IS NULL OR " +
+                    "LOWER(CAST(s.nom AS text)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                    "LOWER(CAST(s.code AS text)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                    "LOWER(CAST(s.adresse AS text)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                    "LOWER(CAST(s.ville AS text)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                    "LOWER(CAST(s.region AS text)) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+                    "AND (:actif IS NULL OR s.actif = :actif)",
+            nativeQuery = true)
     Page<Store> findAllWithFilters(@Param("keyword") String keyword,
                                    @Param("actif") Boolean actif,
                                    Pageable pageable);

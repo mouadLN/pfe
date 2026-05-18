@@ -6,6 +6,7 @@ import com.PFE.electroplanetaudit.repository.UserRepository;
 import com.PFE.electroplanetaudit.service.AuthService;
 import com.PFE.electroplanetaudit.service.TwoFAService;
 import com.PFE.electroplanetaudit.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,8 @@ public class AuthController {
 
     // Step 1: Login - Validate credentials and send 2FA code
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request,
+                                   HttpServletRequest httpRequest) {
         boolean isValid = authService.validateCredentialsAndSendCode(
                 request.getEmail(),
                 request.getPassword()
@@ -33,6 +35,13 @@ public class AuthController {
             return ResponseEntity.badRequest()
                     .body(new MessageResponse("Invalid email or password"));
         }
+
+        // Get client info
+        String clientIp = getClientIp(httpRequest);
+        String userAgent = httpRequest.getHeader("User-Agent");
+
+        // Send 2FA code with device info
+        twoFAService.generateAndSendLoginCode(request.getEmail(), clientIp, userAgent);
 
         return ResponseEntity.ok()
                 .body(new MessageResponse("2FA code sent to your email"));
@@ -73,13 +82,20 @@ public class AuthController {
 
     // Step 1: Forgot password - send reset code
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
+                                            HttpServletRequest httpRequest) {
         try {
             if (!userService.userExistsByEmail(request.getEmail())) {
                 return ResponseEntity.ok().body(new MessageResponse("If your email is registered, you will receive a reset code."));
             }
 
-            twoFAService.generateAndSendResetCode(request.getEmail());
+            // Get client info
+            String clientIp = getClientIp(httpRequest);
+            String userAgent = httpRequest.getHeader("User-Agent");
+
+            // Send reset code with device info
+            twoFAService.generateAndSendResetCode(request.getEmail(), clientIp, userAgent);
+
             return ResponseEntity.ok().body(new MessageResponse("Reset code sent to your email."));
 
         } catch (Exception e) {
@@ -118,14 +134,19 @@ public class AuthController {
     }
 
     @PostMapping("/resend-login-code")
-    public ResponseEntity<?> resendLoginCode(@Valid @RequestBody ResendCodeRequest request) {
+    public ResponseEntity<?> resendLoginCode(@Valid @RequestBody ResendCodeRequest request,
+                                             HttpServletRequest httpRequest) {
         try {
             // Check if user exists
             if (!userService.userExistsByEmail(request.getEmail())) {
                 return ResponseEntity.ok().body(new MessageResponse("If your email is registered, you will receive a new code."));
             }
 
-            twoFAService.resendLoginCode(request.getEmail());
+            // Get client info
+            String clientIp = getClientIp(httpRequest);
+            String userAgent = httpRequest.getHeader("User-Agent");
+
+            twoFAService.resendLoginCode(request.getEmail(), clientIp, userAgent);
             return ResponseEntity.ok().body(new MessageResponse("New 2FA code sent to your email."));
 
         } catch (RuntimeException e) {
@@ -136,13 +157,18 @@ public class AuthController {
     }
 
     @PostMapping("/resend-reset-code")
-    public ResponseEntity<?> resendResetCode(@Valid @RequestBody ResendCodeRequest request) {
+    public ResponseEntity<?> resendResetCode(@Valid @RequestBody ResendCodeRequest request,
+                                             HttpServletRequest httpRequest) {
         try {
             if (!userService.userExistsByEmail(request.getEmail())) {
                 return ResponseEntity.ok().body(new MessageResponse("If your email is registered, you will receive a new code."));
             }
 
-            twoFAService.resendResetCode(request.getEmail());
+            // Get client info
+            String clientIp = getClientIp(httpRequest);
+            String userAgent = httpRequest.getHeader("User-Agent");
+
+            twoFAService.resendResetCode(request.getEmail(), clientIp, userAgent);
             return ResponseEntity.ok().body(new MessageResponse("New reset code sent to your email."));
 
         } catch (RuntimeException e) {
@@ -150,5 +176,33 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Failed to resend code. Please try again."));
         }
+    }
+
+    // Helper method to get real client IP address (handles proxies)
+    private String getClientIp(HttpServletRequest request) {
+        String ipAddress = request.getHeader("X-Forwarded-For");
+
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getHeader("Proxy-Client-IP");
+        }
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getHeader("HTTP_CLIENT_IP");
+        }
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getHeader("HTTP_X_FORWARDED_FOR");
+        }
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getRemoteAddr();
+        }
+
+        // In case of multiple IPs (proxy), take the first one
+        if (ipAddress != null && ipAddress.contains(",")) {
+            ipAddress = ipAddress.split(",")[0].trim();
+        }
+
+        return ipAddress;
     }
 }

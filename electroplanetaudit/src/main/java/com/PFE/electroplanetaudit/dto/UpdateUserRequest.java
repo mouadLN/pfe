@@ -1,5 +1,6 @@
 package com.PFE.electroplanetaudit.dto;
 
+import com.PFE.electroplanetaudit.entity.Role;
 import lombok.Data;
 
 @Data
@@ -11,4 +12,5 @@ public class UpdateUserRequest {
     private String telephone;
     private String region;
     private Boolean actif;
+    private Role role;
 }

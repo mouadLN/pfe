@@ -1,80 +1,356 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2FA Code</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>Code de vérification — ElectroPlanet Audit</title>
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            margin: 0;
-            padding: 0;
-            background-color: #f0f1f5;
-            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f1efe8;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            color: #1a1a18;
+            padding: 2rem 1rem;
         }
-        .container {
-            max-width: 600px;
+
+        .wrapper {
+            max-width: 560px;
+            width: 100%;
             margin: 0 auto;
-            background-color: #ffffff;
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #e2e0d8;
+            overflow: hidden;
         }
+
+        /* Header */
         .header {
-            background-color: #ff0f0f;
-            padding: 16px 24px;
+            padding: 2rem 2rem 1.5rem;
+            border-bottom: 1px solid #e8e6de;
             text-align: center;
         }
-        .header h1 {
-            color: #ffd3d3;
-            font-size: 17.3px;
-            margin: 0 0 16px 0;
+
+        .brand {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1.75rem;
         }
-        .header p {
-            color: #ffd3d3;
-            font-size: 14.7px;
-            margin: 0;
+
+        .brand-logo {
+            height: auto;
+            width: auto;
+            max-width: 200px;
+            max-height: 80px;
+            object-fit: contain;
+            display: block;
         }
-        .content {
-            padding: 24px;
-            text-align: center;
-        }
-        .code {
-            font-size: 48px;
-            font-weight: bold;
-            letter-spacing: 10px;
-            color: #0f0000;
-            padding: 20px;
-            margin: 20px 0;
-            background-color: #f0f1f5;
-            border-radius: 10px;
-        }
-        .footer {
-            background-color: #5d0000;
-            padding: 20px;
-            text-align: center;
-            color: #ffffff;
+
+        .header-eyebrow {
             font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #888780;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #1a1a18;
+            margin-bottom: 0.75rem;
+            line-height: 1.3;
+        }
+
+        .header-subtitle {
+            font-size: 14px;
+            color: #5f5e5a;
+            line-height: 1.6;
+        }
+
+        .header-subtitle strong {
+            color: #1a1a18;
+            font-weight: 600;
+        }
+
+        /* Body */
+        .body {
+            padding: 2rem;
+        }
+
+        /* Code block */
+        .code-block {
+            background: #f1efe8;
+            border-radius: 12px;
+            border: 1px solid #e2e0d8;
+            padding: 1.75rem;
+            text-align: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .code-label {
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #888780;
+            margin-bottom: 0.875rem;
+        }
+
+        .code-value {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 38px;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            color: #1a1a18;
+            line-height: 1.2;
+            word-break: break-all;
+        }
+
+        .code-expiry {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 0.875rem;
+            font-size: 12px;
+            color: #888780;
+        }
+
+        .code-expiry strong {
+            color: #5f5e5a;
+        }
+
+        /* Meta cards */
+        .meta-grid {
+            display: table;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 10px;
+            margin-bottom: 1.25rem;
+        }
+
+        .meta-card {
+            display: table-cell;
+            width: 50%;
+            background: #f1efe8;
+            border: 1px solid #e2e0d8;
+            border-radius: 10px;
+            padding: 0.875rem 1rem;
+            vertical-align: top;
+        }
+
+        .meta-card-label {
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #888780;
+            margin-bottom: 6px;
+        }
+
+        .meta-card-value {
+            font-size: 13px;
+            color: #5f5e5a;
+            font-weight: 500;
+            word-break: break-word;
+        }
+
+        /* Warning */
+        .warning {
+            border-left: 3px solid #e8a020;
+            background: #fef8e8;
+            border-radius: 0 8px 8px 0;
+            padding: 0.875rem 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .warning p {
+            font-size: 13px;
+            color: #633806;
+            line-height: 1.55;
+        }
+
+        /* Safety note */
+        .safety-note {
+            font-size: 13px;
+            color: #888780;
+            line-height: 1.65;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 1.25rem 2rem;
+            border-top: 1px solid #e8e6de;
+            text-align: center;
+            background: #fafaf8;
+        }
+
+        .footer p {
+            font-size: 11px;
+            color: #b4b2a9;
+            margin: 4px 0;
+        }
+
+        /* ===== RESPONSIVE (MOBILE) ===== */
+        @media (max-width: 480px) {
+            body {
+                padding: 0;
+                background-color: #ffffff;
+            }
+
+            .wrapper {
+                max-width: 100%;
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+            }
+
+            .header {
+                padding: 1.5rem 1.25rem;
+            }
+
+            .brand {
+                margin-bottom: 1.25rem;
+            }
+
+            .brand-logo {
+                max-width: 150px;
+                max-height: 55px;
+            }
+
+            .header-title {
+                font-size: 20px;
+            }
+
+            .header-subtitle {
+                font-size: 13px;
+            }
+
+            .body {
+                padding: 1.25rem;
+            }
+
+            .code-block {
+                padding: 1.25rem;
+            }
+
+            .code-value {
+                font-size: 26px;
+                letter-spacing: 0.15em;
+            }
+
+            .code-expiry {
+                font-size: 11px;
+            }
+
+            .meta-grid {
+                display: block;
+                border-spacing: 0;
+            }
+
+            .meta-card {
+                display: block;
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .meta-card:last-child {
+                margin-bottom: 0;
+            }
+
+            .warning p {
+                font-size: 12px;
+            }
+
+            .safety-note {
+                font-size: 12px;
+            }
+
+            .footer {
+                padding: 1rem;
+            }
+
+            .footer p {
+                font-size: 10px;
+            }
+        }
+
+        /* Extra small devices */
+        @media (max-width: 380px) {
+            .brand-logo {
+                max-width: 120px;
+                max-height: 45px;
+            }
+
+            .code-value {
+                font-size: 22px;
+                letter-spacing: 0.1em;
+            }
         }
     </style>
 </head>
 <body>
-<div class="container">
+<div class="wrapper">
+
+    <!-- Header -->
     <div class="header">
-        <h1>Votre code de vérification en deux étapes</h1>
-        <p>Pour la connexion à votre compte</p>
+        <div class="brand" style="text-align: center; display: flex; justify-content: center; margin-bottom: 1.75rem;">
+            <img class="brand-logo" src="cid:logoImage" alt="ElectroPlanet Audit" style="height: 80px; width: auto; max-width: 200px; display: block; margin: 0 auto;">
+        </div>
+        <p class="header-eyebrow" style="text-align: center;">Sécurité du compte</p>
+        <h1 class="header-title" style="text-align: center;">Votre code de connexion</h1>
+        <p class="header-subtitle" style="text-align: center;">
+            Bonjour <strong th:text="${userName}">Utilisateur</strong>,
+            voici votre code de vérification en deux étapes.
+        </p>
     </div>
 
-    <div class="content">
-        <p>Bonjour,</p>
-        <p>Voici votre code de sécurité pour la vérification en deux étapes. Veuillez ne pas partager ce code avec qui que ce soit. Ce code expirera dans 15 minutes.</p>
+    <!-- Body -->
+    <div class="body">
 
-        <div class="code" th:text="${code}">123456</div>
+        <!-- Code -->
+        <div class="code-block">
+            <div class="code-label">CODE À USAGE UNIQUE</div>
+            <div class="code-value" th:text="${code}">123456</div>
+            <div class="code-expiry">
+                <span>⏱️</span>
+                <span>Expire dans <strong>15 minutes</strong></span>
+            </div>
+        </div>
 
-        <p>Si vous n'avez pas demandé ce code, veuillez ignorer cet e-mail et ne pas l'utiliser. Votre compte est en sécurité.</p>
-        <p>Merci,<br>L'équipe de sécurité</p>
+        <!-- Device / Location meta -->
+        <div class="meta-grid">
+            <div class="meta-card">
+                <div class="meta-card-label">💻 APPAREIL</div>
+                <div class="meta-card-value" th:text="${device != null ? device : 'Navigateur web'}">Chrome · Windows</div>
+            </div>
+            <div class="meta-card">
+                <div class="meta-card-label">📍 LOCALISATION</div>
+                <div class="meta-card-value" th:text="${location != null ? location : 'Adresse IP inconnue'}">Casablanca, MA</div>
+            </div>
+        </div>
+
+        <!-- Warning -->
+        <div class="warning">
+            <p>
+                ⚠️ <strong>Important :</strong> Ne partagez jamais ce code.
+                Notre équipe ne vous le demandera jamais par téléphone ou par email.
+            </p>
+        </div>
+
+        <!-- Safety -->
+        <div class="safety-note">
+            <p>🔒 Si vous n'êtes pas à l'origine de cette demande, ignorez cet email. Votre compte reste sécurisé et aucune action n'est nécessaire.</p>
+        </div>
+
     </div>
 
+    <!-- Footer -->
     <div class="footer">
-        <p>Ce code est généré automatiquement. Ne répondez pas à cet e-mail.</p>
+        <p>📧 Message automatique — merci de ne pas répondre.</p>
         <p>© <span th:text="${year}">2026</span> ElectroPlanet Audit. Tous droits réservés.</p>
     </div>
+
 </div>
 </body>
 </html>

@@ -9,13 +9,13 @@ public class AuthResponse {
     private String token;
     private String type = "Bearer";
     private Long userId;
-    private Integer userCode;
+    private String userCode;
     private String nom;
     private String prenom;
     private String email;
     private String role;
 
-    public AuthResponse(String token, Long userId, Integer userCode, String nom, String prenom, String email, String role) {
+    public AuthResponse(String token, Long userId, String userCode, String nom, String prenom, String email, String role) {
         this.token = token;
         this.userId = userId;
         this.userCode = userCode;

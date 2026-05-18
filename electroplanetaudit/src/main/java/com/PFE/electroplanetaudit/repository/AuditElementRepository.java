@@ -26,8 +26,9 @@ public interface AuditElementRepository extends JpaRepository<AuditElement, Long
 
     // Search with pagination and filters
     @Query("SELECT e FROM AuditElement e WHERE " +
-            "(:keyword IS NULL OR " +
-            "LOWER(e.nom) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "(COALESCE(:keyword, '') = '' OR " +
+            "LOWER(e.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(e.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
             "AND (:actif IS NULL OR e.actif = :actif)")
     Page<AuditElement> findAllWithFilters(@Param("keyword") String keyword,
                                           @Param("actif") Boolean actif,

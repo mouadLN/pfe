@@ -43,10 +43,10 @@ public class UserService {
     }
 
     // Generate unique userCode
-    private Integer generateUserCode() {
+    /*private Integer generateUserCode() {
         Integer maxCode = userRepository.findMaxUserCode();
         return (maxCode == null) ? 1000 : maxCode + 1;
-    }
+    }*/
 
     // ===== CREATE USER (ADMIN only) =====
     public UserResponseDTO createUser(CreateUserRequest request) {
@@ -56,7 +56,7 @@ public class UserService {
         }
 
         User user = User.builder()
-                .userCode(generateUserCode())
+                .userCode(request.getUserCode())
                 .nom(request.getNom())
                 .prenom(request.getPrenom())
                 .email(request.getEmail())
@@ -95,7 +95,7 @@ public class UserService {
 
     // ===== GET USER BY USERCODE (ADMIN only) =====
     @Transactional(readOnly =true)
-    public UserResponseDTO getUserByUserCode(Integer userCode) {
+    public UserResponseDTO getUserByUserCode(String userCode) {
         User user = userRepository.findByUserCode(userCode)
                 .orElseThrow(() -> new RuntimeException("User not found with code: " + userCode));
         return convertToDTO(user);
@@ -159,6 +159,7 @@ public class UserService {
         if (request.getTelephone() != null) user.setTelephone(request.getTelephone());
         if (request.getRegion() != null) user.setRegion(request.getRegion());
         if (request.getActif() != null) user.setActif(request.getActif());
+        if (request.getRole() != null) user.setRole(request.getRole());
 
         user = userRepository.save(user);
         return convertToDTO(user);

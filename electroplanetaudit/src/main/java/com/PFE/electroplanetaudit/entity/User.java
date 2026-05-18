@@ -19,7 +19,7 @@ public class User {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private Integer userCode;
+    private String userCode;
 
     @Column(nullable = false)
     @NotBlank

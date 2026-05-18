@@ -65,7 +65,7 @@ public class UserController {
     // ===== GET USER BY USERCODE - ADMIN ONLY =====
     @GetMapping("/code/{userCode}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getUserByUserCode(@PathVariable Integer userCode) {
+    public ResponseEntity<?> getUserByUserCode(@PathVariable String userCode) {
         try {
             UserResponseDTO user = userService.getUserByUserCode(userCode);
             return ResponseEntity.ok(user);

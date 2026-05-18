@@ -8,6 +8,8 @@ import lombok.Data;
 
 @Data
 public class CreateUserRequest {
+    @NotBlank(message = "code is required")
+    private String  userCode;
 
     @NotBlank(message = "Nom is required")
     private String nom;

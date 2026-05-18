@@ -56,7 +56,7 @@ public class AuditMissionService {
 
     // ===== READ - By auditor userCode =====
     @Transactional(readOnly = true)
-    public List<AuditMission> findByAuditeurCode(Integer userCode) {
+    public List<AuditMission> findByAuditeurCode(String userCode) {
         User auditeur = userRepository.findByUserCode(userCode).orElse(null);
         if (auditeur == null) return List.of();
         return auditMissionRepository.findByAuditeur(auditeur);
@@ -64,7 +64,7 @@ public class AuditMissionService {
 
     // ===== READ - For logged-in auditor using userCode =====
     @Transactional(readOnly = true)
-    public Page<AuditMission> getMissionsByAuditeurCode(Integer userCode, MissionStatus status, Pageable pageable) {
+    public Page<AuditMission> getMissionsByAuditeurCode(String userCode, MissionStatus status, Pageable pageable) {
         User auditeur = userRepository.findByUserCode(userCode).orElse(null);
         if (auditeur == null) return Page.empty();
         return auditMissionRepository.findMissionsByAuditeurId(auditeur.getId(), status, pageable);

@@ -1,17 +1,15 @@
 "use client"
 
-import { useState , useEffect } from "react"
+import { useState, useEffect } from "react"
 import { userService } from "@/services/userService"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -19,8 +17,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Spinner } from "@/components/ui/spinner"
 
-export function AddNewUser({ onSuccess }) {
-  const [open, setOpen] = useState(false)
+export function EditUserDialog({ user, open, onOpenChange, onSuccess }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -38,25 +35,39 @@ export function AddNewUser({ onSuccess }) {
     prenom: "",
     nom: "",
     email: "",
-    password: "",
     telephone: "",
     region: "",
     role: "AUDITEUR",
   })
-
-
-  const handleOpenChange = (open) => {
-  if (!open) {
-    setError("") // Clear error when closing // Reset form if needed
-  }
-  setOpen(open)
-}
 
   // Email validation function
   const isValidEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return emailRegex.test(email)
   }
+
+  useEffect(() => {
+  if (user) {
+    setForm({
+      userCode: user.userCode || "",
+      prenom: user.prenom || "",
+      nom: user.nom || "",
+      email: user.email || "",
+      telephone: user.telephone || "",
+      region: user.region || "",
+      role: user.role || "AUDITEUR",
+    })
+    setError("") 
+  }
+}, [user])
+
+
+const handleOpenChange = (open) => {
+  if (!open) {
+    setError("") 
+  }
+  onOpenChange(open)
+}
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -65,7 +76,7 @@ export function AddNewUser({ onSuccess }) {
 
   const handleSubmit = async () => {
     // Basic validation
-    if (!form.userCode || !form.prenom || !form.nom || !form.email || !form.password) {
+    if (!form.prenom || !form.nom || !form.email) {
       setError("Veuillez remplir tous les champs obligatoires.")
       return
     }
@@ -78,39 +89,27 @@ export function AddNewUser({ onSuccess }) {
 
     setIsLoading(true)
     try {
-      await userService.create({
+      await userService.update(user.id, {
         userCode: form.userCode,
         prenom: form.prenom,
         nom: form.nom,
         email: form.email,
-        password: form.password,
         telephone: form.telephone || null,
         region: form.region || null,
         role: form.role,
       })
-      setOpen(false)
-      setForm({ 
-        userCode: "", 
-        prenom: "", 
-        nom: "", 
-        email: "", 
-        password: "", 
-        telephone: "", 
-        region: "", 
-        role: "AUDITEUR" 
-      })
+      onOpenChange(false)
       onSuccess?.()
     } catch (err) {
       // ✅ Better error handling
       if (err.response?.data?.message) {
         setError(err.response.data.message)
       } else if (err.response?.data?.errors) {
-        // Handle validation errors from backend
         const validationErrors = err.response.data.errors
         const firstError = Object.values(validationErrors)[0]
-        setError(firstError || "Erreur lors de la création de l'utilisateur.")
+        setError(firstError || "Erreur lors de la modification de l'utilisateur.")
       } else {
-        setError("Erreur lors de la création de l'utilisateur.")
+        setError("Erreur lors de la modification de l'utilisateur.")
       }
     } finally {
       setIsLoading(false)
@@ -119,14 +118,11 @@ export function AddNewUser({ onSuccess }) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button>Ajouter un utilisateur</Button>
-      </DialogTrigger>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Ajouter un nouvel utilisateur</DialogTitle>
+          <DialogTitle>Modifier l'utilisateur</DialogTitle>
           <DialogDescription>
-            Remplissez les informations du nouvel utilisateur ci-dessous, puis cliquez sur « Enregistrer » pour valider.
+            Modifiez les informations de l'utilisateur ci-dessous.
           </DialogDescription>
         </DialogHeader>
 
@@ -146,6 +142,7 @@ export function AddNewUser({ onSuccess }) {
             placeholder="USER001" 
             value={form.userCode} 
             onChange={handleChange} 
+            disabled  // Usually userCode shouldn't be changed
           />
         </Field>
 
@@ -185,17 +182,6 @@ export function AddNewUser({ onSuccess }) {
             />
           </Field>
           <Field>
-            <FieldLabel htmlFor="password">Mot de passe <span className="text-destructive">*</span></FieldLabel>
-            <Input 
-              id="password" 
-              name="password" 
-              type="password" 
-              placeholder="••••••••" 
-              value={form.password} 
-              onChange={handleChange} 
-            />
-          </Field>
-          <Field>
             <FieldLabel htmlFor="telephone">Téléphone</FieldLabel>
             <Input 
               id="telephone" 
@@ -227,20 +213,20 @@ export function AddNewUser({ onSuccess }) {
             className="mt-2 w-fit"
           >
             <div className="flex items-center gap-3">
-              <RadioGroupItem value="ADMIN" id="r1" />
-              <Label htmlFor="r1">Administrateur</Label>
+              <RadioGroupItem value="ADMIN" id="edit-r1" />
+              <Label htmlFor="edit-r1">Administrateur</Label>
             </div>
             <div className="flex items-center gap-3">
-              <RadioGroupItem value="AUDITEUR" id="r2" />
-              <Label htmlFor="r2">Auditeur</Label>
+              <RadioGroupItem value="AUDITEUR" id="edit-r2" />
+              <Label htmlFor="edit-r2">Auditeur</Label>
             </div>
           </RadioGroup>
         </div>
 
         <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline" disabled={isLoading}>Annuler</Button>
-          </DialogClose>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+            Annuler
+          </Button>
           <Button onClick={handleSubmit} disabled={isLoading}>
             {isLoading ? <><Spinner /> Enregistrement...</> : "Enregistrer"}
           </Button>

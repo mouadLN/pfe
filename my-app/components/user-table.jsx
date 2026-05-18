@@ -1,10 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import { userService } from "@/services/userService";
+import { useRouter } from "next/navigation"
 import { TablePagination } from "@/components/tables-pagination";
 import { MoreHorizontalIcon, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EditUserDialog } from "@/components/UserForms/edit-user";
+import { ViewUserDialog } from "@/components/UserForms/view-user";
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel,
     AlertDialogContent, AlertDialogDescription,
@@ -21,7 +24,7 @@ import {
 
 const DEFAULT_ITEMS_PER_PAGE = 10
 
-export function UserTable({ search = "", role = "all", sort = "id", order = "asc" , refreshKey = 0}) {
+export function UserTable({ search = "", role = "all", sort = "id", order = "asc", refreshKey = 0 }) {
     const [users, setUsers] = useState([])
     const [totalItems, setTotalItems] = useState(0)
     const [totalPages, setTotalPages] = useState(1)
@@ -30,6 +33,9 @@ export function UserTable({ search = "", role = "all", sort = "id", order = "asc
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [userToDelete, setUserToDelete] = useState(null)
+    const [userToEdit, setUserToEdit] = useState(null)
+    const [userToView, setUserToView] = useState(null)
+    const router = useRouter()
     const currentUser = JSON.parse(localStorage.getItem("user") || "{}")
 
     useEffect(() => {
@@ -38,7 +44,7 @@ export function UserTable({ search = "", role = "all", sort = "id", order = "asc
 
     useEffect(() => {
         fetchUsers()
-    }, [search, role, sort, order, currentPage, itemsPerPage , refreshKey])
+    }, [search, role, sort, order, currentPage, itemsPerPage, refreshKey])
 
     const fetchUsers = async () => {
         setLoading(true)
@@ -123,7 +129,7 @@ export function UserTable({ search = "", role = "all", sort = "id", order = "asc
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={user.actif ? "success" : "destructive"}>
+                                        <Badge variant={user.actif ? "actif" : "destructive"}>
                                             {user.actif ? "Actif" : "Inactif"}
                                         </Badge>
                                     </TableCell>
@@ -133,11 +139,14 @@ export function UserTable({ search = "", role = "all", sort = "id", order = "asc
                                                 <Button variant="ghost" size="icon" className="size-8">
                                                     <MoreHorizontalIcon />
                                                 </Button>
-
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem>Profil</DropdownMenuItem>
-                                                <DropdownMenuItem>Modifier</DropdownMenuItem>
+                                                <DropdownMenuItem onSelect={() => setUserToView(user)}>
+                                                    Profil
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onSelect={() => setUserToEdit(user)}>
+                                                    Modifier
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem
                                                     onSelect={() => userService.toggleActif(user.id, !user.actif).then(fetchUsers)}
                                                     disabled={user.id === currentUser.userId}
@@ -178,6 +187,7 @@ export function UserTable({ search = "", role = "all", sort = "id", order = "asc
                 totalItems={totalItems}
             />
 
+            {/* Delete Dialog */}
             <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -196,6 +206,24 @@ export function UserTable({ search = "", role = "all", sort = "id", order = "asc
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Edit Dialog */}
+            <EditUserDialog
+                user={userToEdit}
+                open={!!userToEdit}
+                onOpenChange={(open) => !open && setUserToEdit(null)}
+                onSuccess={() => {
+                    setUserToEdit(null)
+                    fetchUsers()
+                }}
+            />
+
+            {/* ✅ View Dialog */}
+            <ViewUserDialog
+                user={userToView}
+                open={!!userToView}
+                onOpenChange={(open) => !open && setUserToView(null)}
+            />
         </>
     )
 }

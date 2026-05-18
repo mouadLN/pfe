@@ -4,6 +4,12 @@ export const userService = {
   getFiltered: (params) =>
     api.get("/api/users/filtered", { params }),
 
+  getById: (id) =>  
+    api.get(`/api/users/${id}`),
+
+  updateProfile: (id, data) => 
+    api.patch(`/api/users/${id}/profile`, data),
+
   create: (data) =>
     api.post("/api/users", data),
 

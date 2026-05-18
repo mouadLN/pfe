@@ -1,32 +1,39 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { elementAuditService } from "@/services/elementAuditService"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
 
-export function AddNewElement({ onSuccess }) {
-  const [open, setOpen] = useState(false)
+export function EditElementDialog({ element, open, onOpenChange, onSuccess }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [form, setForm] = useState({
     nom: "",
     description: "",
-    actif: true, // default to active
+    actif: true,
   })
+
+  useEffect(() => {
+    if (element) {
+      setForm({
+        nom: element.nom || "",
+        description: element.description || "",
+        actif: element.actif ?? true,
+      })
+    }
+  }, [element])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -41,31 +48,27 @@ export function AddNewElement({ onSuccess }) {
 
     setIsLoading(true)
     try {
-      await elementAuditService.create({
+      await elementAuditService.update(element.id, {
         nom: form.nom,
-        description: form.description || "",
-        actif: true,
+        description: form.description,
+        actif: form.actif,
       })
-      setOpen(false)
-      setForm({ nom: "", description: "", actif: true })
+      onOpenChange(false)
       onSuccess?.()
     } catch (err) {
-      setError(err.response?.data?.message || "Erreur lors de la création de l'élément.")
+      setError(err.response?.data?.message || "Erreur lors de la modification.")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Ajouter un élément</Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Créer un nouvel élément d'audit</DialogTitle>
+          <DialogTitle>Modifier l'élément d'audit</DialogTitle>
           <DialogDescription>
-            Remplissez les informations du nouvel élément d'audit ci-dessous, puis cliquez sur « Enregistrer » pour valider.
+            Modifiez les informations ci-dessous.
           </DialogDescription>
         </DialogHeader>
 
@@ -83,7 +86,6 @@ export function AddNewElement({ onSuccess }) {
             <Input 
               id="nom" 
               name="nom" 
-              placeholder="Nom de l'élément d'audit" 
               value={form.nom}
               onChange={handleChange}
               required 
@@ -94,7 +96,6 @@ export function AddNewElement({ onSuccess }) {
             <Textarea 
               id="description"
               name="description"
-              placeholder="Entrez une description ici."
               value={form.description}
               onChange={handleChange}
             />
@@ -102,9 +103,9 @@ export function AddNewElement({ onSuccess }) {
         </FieldGroup>
 
         <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline" disabled={isLoading}>Annuler</Button>
-          </DialogClose>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+            Annuler
+          </Button>
           <Button onClick={handleSubmit} disabled={isLoading}>
             {isLoading ? <><Spinner /> Enregistrement...</> : "Enregistrer"}
           </Button>

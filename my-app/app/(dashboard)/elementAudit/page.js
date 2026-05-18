@@ -19,6 +19,8 @@ const ElementAudit = () => {
     const [statut, setStatut] = useState("all")
     const [sort, setSort] = useState("id")
     const [order, setOrder] = useState("asc")
+    const [refreshKey, setRefreshKey] = useState(0)
+
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(search), 500)
@@ -62,7 +64,6 @@ const ElementAudit = () => {
                     <SelectContent>
                         <SelectItem value="id">ID</SelectItem>
                         <SelectItem value="nom">Nom</SelectItem>
-                        <SelectItem value="statut">Statut</SelectItem>
                     </SelectContent>
                 </Select>
                 <Button
@@ -79,7 +80,7 @@ const ElementAudit = () => {
                     </Button>
                 )}
                 <div className="ml-auto">
-                    <AddNewElement />
+                    <AddNewElement onSuccess={() => setRefreshKey(k => k + 1)} />
                 </div>
             </div>
             <div className="overflow-x-auto rounded-md">
@@ -88,6 +89,7 @@ const ElementAudit = () => {
                     statut={statut}
                     sort={sort}
                     order={order}
+                    refreshKey={refreshKey} 
                 />
             </div>
         </div>

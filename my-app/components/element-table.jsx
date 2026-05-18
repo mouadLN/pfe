@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
-import { MoreHorizontalIcon } from "lucide-react";
-import { initialElements } from "@/lib/data";
+import { elementAuditService } from "@/services/elementAuditService";
+import { TablePagination } from "@/components/tables-pagination";
+import { MoreHorizontalIcon, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TablePagination } from "@/components/tables-pagination"
+import { EditElementDialog } from "@/components/elementForms/edit-element";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -24,56 +25,93 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
     Table, TableBody, TableCell,
-    TableFooter, TableHead, TableHeader, TableRow, TableCaption
+    TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 
-
 const DEFAULT_ITEMS_PER_PAGE = 10
-export function ElementsAuditTable({ search = "", statut = "all", sort = "id", order = "asc" }) {
 
-    const [elements, setElements] = useState(initialElements);
-    const [elementToDelete, setElementToDelete] = useState(null);
+export function ElementsAuditTable({ search = "", statut = "all", sort = "id", order = "asc", refreshKey = 0 }) {
+    const [elements, setElements] = useState([])
+    const [totalItems, setTotalItems] = useState(0)
+    const [totalPages, setTotalPages] = useState(1)
     const [currentPage, setCurrentPage] = useState(1)
     const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_ITEMS_PER_PAGE)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState("")
+    const [elementToDelete, setElementToDelete] = useState(null)
+    const [elementToEdit, setElementToEdit] = useState(null)
 
     useEffect(() => {
         setCurrentPage(1)
     }, [search, statut, sort, order])
 
-    const filtered = elements
-        .filter((e) => {
-            const matchSearch = search === "" ||
-                e.nom.toLowerCase().includes(search.toLowerCase()) ||
-                e.description.toLowerCase().includes(search.toLowerCase())
+    useEffect(() => {
+        fetchElements()
+    }, [search, statut, sort, order, currentPage, itemsPerPage, refreshKey])
 
-            const matchStatut = statut === "all" || e.statut === statut
+    const fetchElements = async () => {
+        setLoading(true)
+        setError("")
+        try {
+            const params = {
+                page: currentPage - 1, // backend is 0-indexed
+                size: itemsPerPage,
+                sortBy: sort,
+                sortDir: order === "asc" ? "asc" : "desc",
+            }
+            
+            if (search) params.keyword = search
+            if (statut !== "all") params.actif = statut === "Actif"
 
-            return matchSearch && matchStatut
-        })
-        .sort((a, b) => {
-            const valA = a[sort] ?? ""
-            const valB = b[sort] ?? ""
-            if (order === "asc") return valA > valB ? 1 : -1
-            return valA < valB ? 1 : -1
-        })
+            const response = await elementAuditService.getFiltered(params)
+            const data = response.data
 
-    const totalPages = Math.ceil(filtered.length / itemsPerPage)
-    const paginated = filtered.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    )
+            setElements(data.content)
+            setTotalItems(data.totalElements)
+            setTotalPages(data.totalPages)
+        } catch (err) {
+            setError("Erreur lors du chargement des éléments d'audit.")
+            console.error(err)
+        } finally {
+            setLoading(false)
+        }
+    }
 
-    function handleDelete(element) {
-        setElements((prev) => prev.filter((e) => e.id !== element.id));
-        setElementToDelete(null);
+    const handleDelete = async (element) => {
+        try {
+            await elementAuditService.delete(element.id)
+            setElementToDelete(null)
+            fetchElements()
+        } catch (err) {
+            setError("Erreur lors de la suppression.")
+        }
+    }
+
+    const handleToggleActif = async (element) => {
+        try {
+            await elementAuditService.update(element.id, {
+                nom: element.nom,
+                description: element.description,
+                actif: !element.actif
+            })
+            fetchElements()
+        } catch (err) {
+            setError("Erreur lors du changement de statut.")
+        }
     }
 
     return (
-        <div>
+        <>
+            {error && (
+                <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-800 border border-red-200">
+                    {error}
+                </div>
+            )}
+
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead><Badge>Id</Badge></TableHead>
+                        <TableHead><Badge>ID</Badge></TableHead>
                         <TableHead><Badge>Nom</Badge></TableHead>
                         <TableHead><Badge>Description</Badge></TableHead>
                         <TableHead><Badge>Statut</Badge></TableHead>
@@ -81,64 +119,85 @@ export function ElementsAuditTable({ search = "", statut = "all", sort = "id", o
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {paginated.map((element) => (
-                        <TableRow key={element.id}>
-                            <TableCell>{element.id}</TableCell>
-                            <TableCell>{element.nom}</TableCell>
-                            <TableCell>{element.description}</TableCell>
-                            <TableCell>
-                                <Badge variant={element.statut === "Actif" ? "actif" : "inactif"}>
-                                    {element.statut}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="size-8">
-                                            <MoreHorizontalIcon />
-                                            <span className="sr-only">Open menu</span>
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem>Modifier</DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            variant="destructive"
-                                            onSelect={() => setElementToDelete(element)}
-                                        >
-                                            Supprimer
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                    {loading ? (
+                        <TableRow>
+                            <TableCell colSpan={5} className="text-center py-8">
+                                <Loader2 className="animate-spin mx-auto h-6 w-6 text-muted-foreground" />
                             </TableCell>
                         </TableRow>
-                    ))}
-                    {Array.from({ length: itemsPerPage - paginated.length }).map((_, i) => (
-                        <TableRow key={`empty-${i}`} className="pointer-events-none h-[49px]">
-                            {Array.from({ length: 8 }).map((_, j) => (
-                                <TableCell key={j}>&nbsp;</TableCell>
+                    ) : elements.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                Aucun élément d'audit trouvé.
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        <>
+                            {elements.map((element) => (
+                                <TableRow key={element.id}>
+                                    <TableCell>{element.id}</TableCell>
+                                    <TableCell>{element.nom}</TableCell>
+                                    <TableCell className="max-w-md truncate">
+                                        {element.description}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant={element.actif ? "actif" : "inactif"}>
+                                            {element.actif ? "Actif" : "Inactif"}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="size-8">
+                                                    <MoreHorizontalIcon />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onSelect={() => setElementToEdit(element)}>
+                                                    Modifier
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onSelect={() => handleToggleActif(element)}>
+                                                    {element.actif ? "Désactiver" : "Activer"}
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    variant="destructive"
+                                                    onSelect={() => setElementToDelete(element)}
+                                                >
+                                                    Supprimer
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
                             ))}
-                        </TableRow>
-                    ))}
+                            {Array.from({ length: itemsPerPage - elements.length }).map((_, i) => (
+                                <TableRow key={`empty-${i}`} className="pointer-events-none h-[49px]">
+                                    {Array.from({ length: 5 }).map((_, j) => (
+                                        <TableCell key={j}>&nbsp;</TableCell>
+                                    ))}
+                                </TableRow>
+                            ))}
+                        </>
+                    )}
                 </TableBody>
             </Table>
+
             <TablePagination
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
                 itemsPerPage={itemsPerPage}
                 onItemsPerPageChange={setItemsPerPage}
-                totalItems={elements.length}
+                totalItems={totalItems}
             />
 
-            <AlertDialog
-                open={!!elementToDelete}
-                onOpenChange={(open) => !open && setElementToDelete(null)}
-            >
+            {/* Delete Dialog */}
+            <AlertDialog open={!!elementToDelete} onOpenChange={(open) => !open && setElementToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>
-                            Supprimer {elementToDelete?.nom}?
+                            Supprimer {elementToDelete?.nom} ?
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                             Cette action est irréversible. Cet élément sera définitivement supprimé.
@@ -152,6 +211,17 @@ export function ElementsAuditTable({ search = "", statut = "all", sort = "id", o
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div>
+
+            {/* Edit Dialog */}
+            <EditElementDialog
+                element={elementToEdit}
+                open={!!elementToEdit}
+                onOpenChange={(open) => !open && setElementToEdit(null)}
+                onSuccess={() => {
+                    setElementToEdit(null)
+                    fetchElements()
+                }}
+            />
+        </>
     )
 }

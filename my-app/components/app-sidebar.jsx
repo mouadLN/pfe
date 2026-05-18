@@ -7,9 +7,9 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import {
-  ChevronRight, Building2, LayoutDashboard, UserRoundCog,
+  ChevronRight, LayoutDashboard, UserRoundCog,
   ListTodo, Map, HatGlasses, ChevronsUpDownIcon, UserRound,
-  UserRoundPen, BadgeQuestionMark, LogOutIcon
+  BadgeQuestionMark, LogOutIcon
 } from "lucide-react"
 
 import {
@@ -145,6 +145,12 @@ function SidebarUserFooter() {
       router.push("/login")
     }
   }
+
+  const handleViewProfile = () => {
+    router.push("/profile")
+  }
+
+
   return (
     <>
       <SidebarMenu>
@@ -186,13 +192,9 @@ function SidebarUserFooter() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleViewProfile}>
                   <UserRound />
                   Profil
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <UserRoundPen />
-                  Modifier le profil
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <BadgeQuestionMark />
@@ -202,7 +204,7 @@ function SidebarUserFooter() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 variant="destructive"
-                onSelect={() => setShowLogoutDialog(true)} // 👈 key line
+                onSelect={() => setShowLogoutDialog(true)}
               >
                 <LogOutIcon />
                 Déconnexion

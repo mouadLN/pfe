@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AuditSessionRepository extends JpaRepository<AuditSession, Long> {
@@ -23,6 +24,9 @@ public interface AuditSessionRepository extends JpaRepository<AuditSession, Long
 
     // Find by mission
     List<AuditSession> findByMissionId(Long missionId);
+
+
+    Optional<AuditSession> findFirstByMissionId(Long missionId);
 
     // Find by status
     List<AuditSession> findByStatut(SessionStatus statut);
@@ -42,6 +46,14 @@ public interface AuditSessionRepository extends JpaRepository<AuditSession, Long
                                           @Param("auditeurId") Long auditeurId,
                                           @Param("statut") SessionStatus statut,
                                           Pageable pageable);
+
+
+    @Query("SELECT s FROM AuditSession s " +
+            "LEFT JOIN FETCH s.scores sc " +
+            "LEFT JOIN FETCH sc.auditElement " +
+            "LEFT JOIN FETCH sc.mediaEvidences " +
+            "WHERE s.mission.id = :missionId")
+    Optional<AuditSession> findFirstByMissionIdWithScores(@Param("missionId") Long missionId);
 
     // Get completed audits only (for BI)
     List<AuditSession> findByStatutOrderByDateFinDesc(SessionStatus statut);

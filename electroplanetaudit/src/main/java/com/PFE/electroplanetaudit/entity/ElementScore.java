@@ -3,7 +3,9 @@ package com.PFE.electroplanetaudit.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "element_scores")
@@ -31,5 +33,5 @@ public class ElementScore {
     private AuditElement auditElement;
 
     @OneToMany(mappedBy = "elementScore", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<MediaEvidence> mediaEvidences = new ArrayList<>();
+    private Set<MediaEvidence> mediaEvidences = new HashSet<>();
 }

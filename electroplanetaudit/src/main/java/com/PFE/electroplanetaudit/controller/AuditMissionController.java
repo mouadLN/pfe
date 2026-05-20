@@ -3,6 +3,7 @@ package com.PFE.electroplanetaudit.controller;
 import com.PFE.electroplanetaudit.entity.AuditMission;
 import com.PFE.electroplanetaudit.entity.MissionStatus;
 import com.PFE.electroplanetaudit.service.AuditMissionService;
+import com.PFE.electroplanetaudit.service.PdfService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -20,6 +22,7 @@ import java.util.List;
 public class AuditMissionController {
 
     private final AuditMissionService auditMissionService;
+    private final PdfService pdfService;
 
     // ===== CREATE - ADMIN ONLY =====
     @PostMapping
@@ -180,5 +183,20 @@ public class AuditMissionController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok().body("{\"message\": \"Mission deleted successfully\"}");
+    }
+
+    //rapport pdf
+    @GetMapping("/{missionId}/rapport")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> downloadRapport(@PathVariable Long missionId) {
+        try {
+            byte[] pdf = pdfService.generateRapport(missionId);
+            return ResponseEntity.ok()
+                    .header("Content-Type", "application/pdf")
+                    .header("Content-Disposition", "attachment; filename=rapport-mission-" + missionId + ".pdf")
+                    .body(pdf);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

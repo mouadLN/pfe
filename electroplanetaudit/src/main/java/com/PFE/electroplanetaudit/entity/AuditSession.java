@@ -1,5 +1,6 @@
 package com.PFE.electroplanetaudit.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -39,7 +40,8 @@ public class AuditSession {
 
     @OneToOne
     @JoinColumn(name = "mission_id", nullable = false)
-    private AuditMission mission;  // Link to planned mission
+    @JsonIgnoreProperties({"auditSession", "auditElements"})
+    private AuditMission mission;
 
     @OneToMany(mappedBy = "auditSession", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ElementScore> scores = new ArrayList<>();

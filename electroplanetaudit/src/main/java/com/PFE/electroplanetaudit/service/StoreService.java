@@ -63,6 +63,12 @@ public class StoreService {
         return storeRepository.findAllWithFilters(keyword, actif, pageable);
     }
 
+
+    @Transactional(readOnly = true)
+    public List<Store> findByRegion(String region) {
+        return storeRepository.findByRegion(region);
+    }
+
     // Get all regions (for filter dropdown)
     @Transactional(readOnly = true)
     public List<String> getAllRegions() {

@@ -57,6 +57,12 @@ public class StoreController {
         return ResponseEntity.ok(store);
     }
 
+    @GetMapping("/by-region/{region}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<Store>> getStoresByRegion(@PathVariable String region) {
+        return ResponseEntity.ok(storeService.findByRegion(region));
+    }
+
     // ===== READ (Active stores) - Both =====
     @GetMapping("/active")
     @PreAuthorize("isAuthenticated()")

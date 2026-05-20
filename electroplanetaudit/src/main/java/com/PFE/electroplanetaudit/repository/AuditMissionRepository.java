@@ -45,10 +45,13 @@ public interface AuditMissionRepository extends JpaRepository<AuditMission, Long
 
     // Search with pagination and filters (for admin)
     @Query("SELECT m FROM AuditMission m WHERE " +
-            "(:keyword IS NULL OR " +
+            "(COALESCE(:keyword, '') = '' OR " +
             "LOWER(m.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(m.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-            "AND (:status IS NULL OR m.statut = :status) " +
+            "LOWER(m.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(m.auditeur.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +    // ✅
+            "LOWER(m.auditeur.prenom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " + // ✅
+            "LOWER(m.store.nom) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +         // ✅
+            "AND (:#{#status} IS NULL OR m.statut = :#{#status}) " +
             "AND (:storeId IS NULL OR m.store.id = :storeId) " +
             "AND (:auditeurId IS NULL OR m.auditeur.id = :auditeurId)")
     Page<AuditMission> findAllWithFilters(@Param("keyword") String keyword,

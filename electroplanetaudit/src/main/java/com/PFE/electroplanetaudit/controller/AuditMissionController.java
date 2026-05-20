@@ -90,8 +90,18 @@ public class AuditMissionController {
             @RequestParam(defaultValue = "dateDebut") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
 
+        // ✅ Map frontend sort keys to actual JPA entity field paths
+        String mappedSortBy = switch (sortBy) {
+            case "titre"    -> "title";
+            case "magasin"  -> "store.nom";
+            case "dateDebut"-> "dateDebut";
+            case "dateFin"  -> "dateFin";
+            case "statut"   -> "statut";
+            default         -> "id";
+        };
+
         Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, mappedSortBy));
 
         MissionStatus missionStatus = null;
         if (status != null && !status.isEmpty()) {

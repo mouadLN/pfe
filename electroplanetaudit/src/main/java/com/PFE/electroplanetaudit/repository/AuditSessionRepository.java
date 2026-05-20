@@ -37,7 +37,7 @@ public interface AuditSessionRepository extends JpaRepository<AuditSession, Long
     @Query("SELECT s FROM AuditSession s WHERE " +
             "(:storeId IS NULL OR s.store.id = :storeId) " +
             "AND (:auditeurId IS NULL OR s.auditeur.id = :auditeurId) " +
-            "AND (:statut IS NULL OR s.statut = :statut)")
+            "AND (:#{#statut} IS NULL OR s.statut = :#{#statut})")
     Page<AuditSession> findAllWithFilters(@Param("storeId") Long storeId,
                                           @Param("auditeurId") Long auditeurId,
                                           @Param("statut") SessionStatus statut,
@@ -59,6 +59,6 @@ public interface AuditSessionRepository extends JpaRepository<AuditSession, Long
     List<Object[]> getAverageScoreByRegion();
 
     // Get monthly audit count (for BI)
-    @Query("SELECT FUNCTION('DATE_FORMAT', s.dateCreation, '%Y-%m'), COUNT(s) FROM AuditSession s GROUP BY FUNCTION('DATE_FORMAT', s.dateCreation, '%Y-%m') ORDER BY FUNCTION('DATE_FORMAT', s.dateCreation, '%Y-%m') DESC")
+    @Query("SELECT TO_CHAR(s.dateCreation, 'YYYY-MM'), COUNT(s) FROM AuditSession s GROUP BY TO_CHAR(s.dateCreation, 'YYYY-MM') ORDER BY TO_CHAR(s.dateCreation, 'YYYY-MM') DESC")
     List<Object[]> getMonthlyAuditCount();
 }

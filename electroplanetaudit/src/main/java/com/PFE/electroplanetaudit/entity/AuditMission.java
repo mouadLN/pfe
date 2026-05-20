@@ -1,5 +1,6 @@
 package com.PFE.electroplanetaudit.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -39,10 +40,12 @@ public class AuditMission {
 
     @ManyToOne
     @JoinColumn(name = "auditeur_id", nullable = false)
+    @JsonIgnoreProperties({"motDePasse", "missions"})
     private User auditeur;
 
     @ManyToOne
     @JoinColumn(name = "administrateur_id")
+    @JsonIgnoreProperties({"motDePasse", "missions"})
     private User administrateur;
 
     @ManyToMany
@@ -54,6 +57,7 @@ public class AuditMission {
     private List<AuditElement> auditElements = new ArrayList<>();
 
     @OneToOne(mappedBy = "mission")
+    @JsonIgnoreProperties({"mission", "scores"})
     private AuditSession auditSession;
 
     @Column(nullable = false)

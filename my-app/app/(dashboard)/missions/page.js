@@ -1,25 +1,3 @@
-/*
-import { MissionsTable } from "@/components/mission-table";
-import { AddNewMission } from "@/components/missionForms/add-new-mission";
-import {Input} from "@/components/ui/input"
-
-const Missions = () => {
-    return (
-        <div className="flex flex-col gap-4">
-            <p className="text-xl text-muted-foreground">Liste des missions d'audit récentes</p>
-            <div className="flex items-center justify-between gap-4">
-                <Input placeholder="Rechercher une mission..." className="max-w-sm" />
-                <AddNewMission />
-            </div>
-            <div className="overflow-x-auto rounded-md ">
-                <MissionsTable />
-            </div>
-        </div>
-    )
-}
-
-export default Missions;*/
-
 "use client"
 import { useState, useEffect } from "react"
 import { MissionsTable } from "@/components/mission-table";
@@ -41,6 +19,7 @@ const Missions = () => {
     const [statut, setStatut] = useState("all")
     const [sort, setSort] = useState("id")
     const [order, setOrder] = useState("asc")
+    const [refreshKey, setRefreshKey] = useState(0)
 
     // debounce search
     useEffect(() => {
@@ -82,6 +61,7 @@ const Missions = () => {
                         <SelectItem value="En attente">En attente</SelectItem>
                         <SelectItem value="En cours">En cours</SelectItem>
                         <SelectItem value="Terminée">Terminée</SelectItem>
+                        <SelectItem value="Annulée">Annulée</SelectItem>
                     </SelectContent>
                 </Select>
 
@@ -119,7 +99,7 @@ const Missions = () => {
 
                 {/* Add button pushed to right */}
                 <div className="ml-auto">
-                    <AddNewMission />
+                    <AddNewMission onSuccess={() => setRefreshKey(k => k + 1)} />
                 </div>
             </div>
 
@@ -129,6 +109,7 @@ const Missions = () => {
                     statut={statut}
                     sort={sort}
                     order={order}
+                    refreshKey={refreshKey}
                 />
             </div>
         </div>

@@ -25,6 +25,9 @@ export const storeService = {
   getRegions: () =>
     api.get("/api/stores/regions"),
 
+  getByRegion: (region) =>
+    api.get(`/api/stores/by-region/${region}`), 
+
   // GET /api/stores/villes  → for dropdowns
   getVilles: () =>
     api.get("/api/stores/villes"),

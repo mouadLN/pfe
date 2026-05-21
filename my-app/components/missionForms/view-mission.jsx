@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, User, FileText, Store, CheckSquare, Download, Shield, Globe } from "lucide-react";
+import { Calendar, Eye, MapPin, User, FileText, Store, CheckSquare, Download, Shield, Globe } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -40,11 +40,62 @@ const formatDateTime = (dateString) => {
 export function ViewMissionDialog({ mission, open, onOpenChange }) {
     if (!mission) return null;
 
-    const handleDownloadReport = () => {
-        if (mission.statut !== "TERMINEE") return;
-        // TODO: Implement report download
-        console.log("Downloading report for mission:", mission.id);
-    };
+
+    const handleDownloadReport = async () => {
+        try {
+            const token = localStorage.getItem("token")
+            const response = await fetch(
+                `http://localhost:8080/api/audit-missions/${mission.id}/rapport`,
+                {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            )
+
+            if (!response.ok) throw new Error("Erreur lors du téléchargement")
+
+            const blob = await response.blob()
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.href = url
+            a.download = `rapport-mission-${mission.id}.pdf`
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            window.URL.revokeObjectURL(url)
+        } catch (error) {
+            console.error("Download error:", error)
+        }
+    }
+    const handlePreviewReport = async () => {
+  try {
+    const token = localStorage.getItem("token")
+    const response = await fetch(
+      `http://localhost:8080/api/audit-missions/${mission.id}/rapport`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error("Backend error:", errorText)
+      throw new Error(errorText || "Erreur lors du chargement")
+    }
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    window.open(url, "_blank")
+  } catch (error) {
+    console.error("Preview error:", error.message)
+    alert(error.message) // temporary to see the error
+  }
+}
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -191,22 +242,30 @@ export function ViewMissionDialog({ mission, open, onOpenChange }) {
                     </div>
 
                     {/* Download Report Button - Always visible but disabled for non-terminated missions */}
-                    <div className="pt-4 border-t">
+                    <div className="pt-4 border-t flex gap-2">
+                        <Button
+                            onClick={handlePreviewReport}
+                            className="flex-1 gap-2"
+                            variant="outline"
+                            disabled={mission.statut !== "TERMINEE"}
+                        >
+                            <Eye className="h-4 w-4" />
+                            Aperçu
+                        </Button>
                         <Button
                             onClick={handleDownloadReport}
-                            className="w-full gap-2"
-                            variant={mission.statut === "TERMINEE" ? "default" : "outline"}
+                            className="flex-1 gap-2"
                             disabled={mission.statut !== "TERMINEE"}
                         >
                             <Download className="h-4 w-4" />
-                            Télécharger le rapport d'audit
-                            {mission.statut !== "TERMINEE" && (
-                                <span className="text-xs ml-2">
-                                    (Disponible uniquement pour les missions terminées)
-                                </span>
-                            )}
+                            Télécharger
                         </Button>
                     </div>
+                    {mission.statut !== "TERMINEE" && (
+                        <p className="text-xs text-muted-foreground text-center mt-2">
+                            Disponible uniquement pour les missions terminées
+                        </p>
+                    )}
                 </div>
             </DialogContent>
         </Dialog>

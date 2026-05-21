@@ -20,7 +20,12 @@ const ElementAudit = () => {
     const [sort, setSort] = useState("id")
     const [order, setOrder] = useState("asc")
     const [refreshKey, setRefreshKey] = useState(0)
+    const [userRole, setUserRole] = useState(null)
 
+    useEffect(() => {
+        const stored = JSON.parse(localStorage.getItem("user") || "{}")
+        setUserRole(stored.role)
+    }, [])
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(search), 500)
@@ -36,6 +41,14 @@ const ElementAudit = () => {
     }
 
     const hasFilters = search || statut !== "all" || sort !== "id" || order !== "asc"
+    const isAdmin = userRole === "ADMIN"
+
+    // For auditeur, always show only active elements
+    useEffect(() => {
+        if (userRole === "AUDITEUR" && statut === "all") {
+            setStatut("Actif")
+        }
+    }, [userRole])
 
     return (
         <div className="flex flex-col gap-4">
@@ -47,16 +60,21 @@ const ElementAudit = () => {
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-48"
                 />
-                <Select value={statut} onValueChange={setStatut}>
-                    <SelectTrigger className="w-28">
-                        <SelectValue placeholder="Statut" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Tous</SelectItem>
-                        <SelectItem value="Actif">Actif</SelectItem>
-                        <SelectItem value="Inactif">Inactif</SelectItem>
-                    </SelectContent>
-                </Select>
+                
+                {/* Status filter - hide for auditeur or force to Actif */}
+                {isAdmin && (
+                    <Select value={statut} onValueChange={setStatut}>
+                        <SelectTrigger className="w-28">
+                            <SelectValue placeholder="Statut" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Tous</SelectItem>
+                            <SelectItem value="Actif">Actif</SelectItem>
+                            <SelectItem value="Inactif">Inactif</SelectItem>
+                        </SelectContent>
+                    </Select>
+                )}
+                
                 <Select value={sort} onValueChange={setSort}>
                     <SelectTrigger className="w-28">
                         <SelectValue placeholder="Trier par" />
@@ -79,9 +97,13 @@ const ElementAudit = () => {
                         Réinitialiser
                     </Button>
                 )}
-                <div className="ml-auto">
-                    <AddNewElement onSuccess={() => setRefreshKey(k => k + 1)} />
-                </div>
+                
+                {/* Add button - only for admin */}
+                {isAdmin && (
+                    <div className="ml-auto">
+                        <AddNewElement onSuccess={() => setRefreshKey(k => k + 1)} />
+                    </div>
+                )}
             </div>
             <div className="overflow-x-auto rounded-md">
                 <ElementsAuditTable
@@ -89,7 +111,8 @@ const ElementAudit = () => {
                     statut={statut}
                     sort={sort}
                     order={order}
-                    refreshKey={refreshKey} 
+                    refreshKey={refreshKey}
+                    userRole={userRole}
                 />
             </div>
         </div>

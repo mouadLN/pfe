@@ -30,7 +30,7 @@ import {
 
 const DEFAULT_ITEMS_PER_PAGE = 10
 
-export function ElementsAuditTable({ search = "", statut = "all", sort = "id", order = "asc", refreshKey = 0 }) {
+export function ElementsAuditTable({ search = "", statut = "all", sort = "id", order = "asc", refreshKey = 0, userRole = null }) {
     const [elements, setElements] = useState([])
     const [totalItems, setTotalItems] = useState(0)
     const [totalPages, setTotalPages] = useState(1)
@@ -40,6 +40,8 @@ export function ElementsAuditTable({ search = "", statut = "all", sort = "id", o
     const [error, setError] = useState("")
     const [elementToDelete, setElementToDelete] = useState(null)
     const [elementToEdit, setElementToEdit] = useState(null)
+
+    const isAdmin = userRole === "ADMIN"
 
     useEffect(() => {
         setCurrentPage(1)
@@ -54,7 +56,7 @@ export function ElementsAuditTable({ search = "", statut = "all", sort = "id", o
         setError("")
         try {
             const params = {
-                page: currentPage - 1, // backend is 0-indexed
+                page: currentPage - 1,
                 size: itemsPerPage,
                 sortBy: sort,
                 sortDir: order === "asc" ? "asc" : "desc",
@@ -62,6 +64,11 @@ export function ElementsAuditTable({ search = "", statut = "all", sort = "id", o
             
             if (search) params.keyword = search
             if (statut !== "all") params.actif = statut === "Actif"
+            
+            // For auditeur, always only get active elements
+            if (!isAdmin && statut === "all") {
+                params.actif = true
+            }
 
             const response = await elementAuditService.getFiltered(params)
             const data = response.data
@@ -115,19 +122,20 @@ export function ElementsAuditTable({ search = "", statut = "all", sort = "id", o
                         <TableHead><Badge>Nom</Badge></TableHead>
                         <TableHead><Badge>Description</Badge></TableHead>
                         <TableHead><Badge>Statut</Badge></TableHead>
-                        <TableHead className="text-right">Action</TableHead>
+                        {/* Action column only for admin */}
+                        {isAdmin && <TableHead className="text-right">Action</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {loading ? (
                         <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8">
+                            <TableCell colSpan={isAdmin ? 5 : 4} className="text-center py-8">
                                 <Loader2 className="animate-spin mx-auto h-6 w-6 text-muted-foreground" />
                             </TableCell>
                         </TableRow>
                     ) : elements.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={isAdmin ? 5 : 4} className="text-center py-8 text-muted-foreground">
                                 Aucun élément d'audit trouvé.
                             </TableCell>
                         </TableRow>
@@ -145,35 +153,38 @@ export function ElementsAuditTable({ search = "", statut = "all", sort = "id", o
                                             {element.actif ? "Actif" : "Inactif"}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="size-8">
-                                                    <MoreHorizontalIcon />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onSelect={() => setElementToEdit(element)}>
-                                                    Modifier
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onSelect={() => handleToggleActif(element)}>
-                                                    {element.actif ? "Désactiver" : "Activer"}
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem
-                                                    variant="destructive"
-                                                    onSelect={() => setElementToDelete(element)}
-                                                >
-                                                    Supprimer
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
+                                    {/* Action column only for admin */}
+                                    {isAdmin && (
+                                        <TableCell className="text-right">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="size-8">
+                                                        <MoreHorizontalIcon />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onSelect={() => setElementToEdit(element)}>
+                                                        Modifier
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onSelect={() => handleToggleActif(element)}>
+                                                        {element.actif ? "Désactiver" : "Activer"}
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        variant="destructive"
+                                                        onSelect={() => setElementToDelete(element)}
+                                                    >
+                                                        Supprimer
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    )}
                                 </TableRow>
                             ))}
                             {Array.from({ length: itemsPerPage - elements.length }).map((_, i) => (
                                 <TableRow key={`empty-${i}`} className="pointer-events-none h-[49px]">
-                                    {Array.from({ length: 5 }).map((_, j) => (
+                                    {Array.from({ length: isAdmin ? 5 : 4 }).map((_, j) => (
                                         <TableCell key={j}>&nbsp;</TableCell>
                                     ))}
                                 </TableRow>
@@ -192,36 +203,40 @@ export function ElementsAuditTable({ search = "", statut = "all", sort = "id", o
                 totalItems={totalItems}
             />
 
-            {/* Delete Dialog */}
-            <AlertDialog open={!!elementToDelete} onOpenChange={(open) => !open && setElementToDelete(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>
-                            Supprimer {elementToDelete?.nom} ?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Cette action est irréversible. Cet élément sera définitivement supprimé.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(elementToDelete)}>
-                            Supprimer
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            {/* Delete Dialog - only for admin */}
+            {isAdmin && (
+                <AlertDialog open={!!elementToDelete} onOpenChange={(open) => !open && setElementToDelete(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>
+                                Supprimer {elementToDelete?.nom} ?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Cette action est irréversible. Cet élément sera définitivement supprimé.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(elementToDelete)}>
+                                Supprimer
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
 
-            {/* Edit Dialog */}
-            <EditElementDialog
-                element={elementToEdit}
-                open={!!elementToEdit}
-                onOpenChange={(open) => !open && setElementToEdit(null)}
-                onSuccess={() => {
-                    setElementToEdit(null)
-                    fetchElements()
-                }}
-            />
+            {/* Edit Dialog - only for admin */}
+            {isAdmin && (
+                <EditElementDialog
+                    element={elementToEdit}
+                    open={!!elementToEdit}
+                    onOpenChange={(open) => !open && setElementToEdit(null)}
+                    onSuccess={() => {
+                        setElementToEdit(null)
+                        fetchElements()
+                    }}
+                />
+            )}
         </>
     )
 }

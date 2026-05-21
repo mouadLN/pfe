@@ -9,7 +9,7 @@ import {
 import {
   ChevronRight, LayoutDashboard, UserRoundCog,
   ListTodo, Map, HatGlasses, ChevronsUpDownIcon, UserRound,
-  BadgeQuestionMark, LogOutIcon
+  BadgeQuestionMark, LogOutIcon, ClipboardList, CheckSquare
 } from "lucide-react"
 
 import {
@@ -55,8 +55,8 @@ import {
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 
-
-const items = [
+// Admin menu items
+const adminItems = [
   {
     title: "Tableau de bord",
     url: "#",
@@ -82,7 +82,7 @@ const items = [
     isActive: true,
     items: [
       { title: "Gestion des missions", url: "/missions" },
-      { title: "Gestion des elements d'audit", url: "/elementAudit" },
+      { title: "Gestion des éléments d'audit", url: "/elementAudit" },
       { title: "Suivi des missions", url: "/missions/suivi" },
     ],
   },
@@ -107,6 +107,37 @@ const items = [
   },
 ]
 
+// Auditeur menu items
+const auditeurItems = [
+  {
+    title: "Tableau de bord",
+    url: "#",
+    icon: <LayoutDashboard />,
+    isActive: true,
+    items: [
+      { title: "Vue d'ensemble", url: "/dashboard" }
+    ],
+  },
+  {
+    title: "Mes Missions",
+    url: "#",
+    icon: <ListTodo />,
+    isActive: true,
+    items: [
+      { title: "Missions", url: "/missions/auditeur" },
+    ],
+  },
+  {
+    title: "Référentiel",
+    url: "#",
+    icon: <ClipboardList />,
+    isActive: true,
+    items: [
+      { title: "Éléments d'audit", url: "/elementAudit" },
+    ],
+  },
+]
+
 function getInitials(name) {
   return name
     .split(" ")
@@ -116,22 +147,19 @@ function getInitials(name) {
     .slice(0, 2)
 }
 
-
-
-
-
 function SidebarUserFooter() {
   const { isMobile } = useSidebar()
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
   const router = useRouter()
   const [user, setUser] = useState({ nom: "", prenom: "", email: "", role: "" })
 
-
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("user") || "{}")
     setUser(stored)
   }, [])
+  
   const displayName = `${user.nom || ""} ${user.prenom || ""}`.trim() || "Utilisateur"
+  const isAdmin = user.role === "ADMIN"
 
   const handleLogout = async () => {
     try {
@@ -149,7 +177,6 @@ function SidebarUserFooter() {
   const handleViewProfile = () => {
     router.push("/profile")
   }
-
 
   return (
     <>
@@ -257,6 +284,17 @@ function SidebarBrand() {
 export function AppSidebar() {
   const pathname = usePathname()
   const { state } = useSidebar()
+  const [userRole, setUserRole] = useState(null)
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem("user") || "{}")
+    setUserRole(stored.role)
+  }, [])
+
+  // Select menu items based on role
+  const menuItems = userRole === "ADMIN" ? adminItems : auditeurItems
+
+  if (!userRole) return null // Wait for role to load
 
   return (
     <Sidebar collapsible="icon">
@@ -266,7 +304,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Platform</SidebarGroupLabel>
           <SidebarMenu>
-            {items.map((item) => {
+            {menuItems.map((item) => {
               const isParentActive = item.items?.some((sub) => sub.url === pathname)
 
               return (

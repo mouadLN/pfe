@@ -1,0 +1,127 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        * { margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; font-size: 12px; color: #333; padding: 30px; }
+
+        .header-table { width: 100%; border-bottom: 3px solid #e65c00; padding-bottom: 15px; margin-bottom: 20px; }
+        .logo { width: 60px; height: 60px; }
+        .header-title-h1 { font-size: 20px; color: #e65c00; margin: 0; }
+        .header-title-p { font-size: 11px; color: #666; }
+
+        .section-title { background-color: #e65c00; color: white; padding: 6px 12px; font-size: 13px; font-weight: bold; margin-bottom: 10px; margin-top: 20px; }
+
+        .info-table { width: 100%; padding: 0 10px; margin-bottom: 10px; }
+        .info-label { font-weight: bold; color: #555; width: 120px; }
+
+        table.results { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        table.results th { background-color: #f5f5f5; border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; color: #444; }
+        table.results td { border: 1px solid #ddd; padding: 8px; vertical-align: top; font-size: 11px; }
+        table.results tr.even { background-color: #fafafa; }
+
+        .score-high { color: #22c55e; font-weight: bold; }
+        .score-mid { color: #f59e0b; font-weight: bold; }
+        .score-low { color: #ef4444; font-weight: bold; }
+
+        .evidence-img { width: 60px; height: 60px; margin-right: 4px; border: 1px solid #ddd; }
+
+        .footer-table { width: 100%; border-top: 2px solid #e65c00; padding-top: 20px; margin-top: 30px; }
+        .global-score { font-size: 16px; font-weight: bold; color: #e65c00; }
+        .signature-line { border-top: 1px solid #333; width: 180px; margin-top: 40px; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<table class="header-table">
+    <tr>
+        <td style="width:80px;">
+            <img class="logo" th:src="${logoBase64}" alt="Logo"/>
+        </td>
+        <td>
+            <p class="header-title-h1">Rapport d'Audit</p>
+            <p class="header-title-p" th:text="${rapport.missionTitle}">Titre de la mission</p>
+        </td>
+    </tr>
+</table>
+
+<!-- INFORMATIONS GÉNÉRALES -->
+<p class="section-title">Informations Générales</p>
+<table class="info-table">
+    <tr>
+        <td class="info-label">Magasin :</td>
+        <td th:text="${rapport.storeNom}"></td>
+        <td class="info-label">Code :</td>
+        <td th:text="${rapport.storeCode}"></td>
+    </tr>
+    <tr>
+        <td class="info-label">Ville :</td>
+        <td th:text="${rapport.storeVille}"></td>
+        <td class="info-label">Région :</td>
+        <td th:text="${rapport.storeRegion}"></td>
+    </tr>
+    <tr>
+        <td class="info-label">Adresse :</td>
+        <td colspan="3" th:text="${rapport.storeAdresse}"></td>
+    </tr>
+    <tr>
+        <td class="info-label">Auditeur :</td>
+        <td th:text="${rapport.auditeurPrenom + ' ' + rapport.auditeurNom}"></td>
+        <td class="info-label">Administrateur :</td>
+        <td th:text="${rapport.adminPrenom + ' ' + rapport.adminNom}"></td>
+    </tr>
+    <tr>
+        <td class="info-label">Date début :</td>
+        <td th:text="${#temporals.format(rapport.dateDebut, 'dd/MM/yyyy HH:mm')}"></td>
+        <td class="info-label">Date fin :</td>
+        <td th:text="${rapport.dateFin != null ? #temporals.format(rapport.dateFin, 'dd/MM/yyyy HH:mm') : '-'}"></td>
+    </tr>
+</table>
+
+<!-- RÉSULTATS D'AUDIT -->
+<p class="section-title">Résultats d'Audit</p>
+<table class="results">
+    <thead>
+    <tr>
+        <th style="width:30%;">Élément d'audit</th>
+        <th style="width:10%;">Note</th>
+        <th style="width:35%;">Commentaire</th>
+        <th style="width:25%;">Photos</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="score, iterStat : ${rapport.scores}" th:class="${iterStat.even} ? 'even' : ''">
+        <td th:text="${score.elementNom}"></td>
+        <td>
+                    <span th:class="${score.score >= 8} ? 'score-high' : (${score.score >= 5} ? 'score-mid' : 'score-low')"
+                          th:text="${score.score + '/10'}"></span>
+        </td>
+        <td th:text="${score.commentaire != null ? score.commentaire : '-'}"></td>
+        <td>
+                    <span th:each="imgUrl : ${score.imageUrls}">
+                        <img class="evidence-img" th:src="${imgUrl}" alt="Photo"/>
+                    </span>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<!-- FOOTER -->
+<table class="footer-table">
+    <tr>
+        <td>
+            <p class="global-score" th:text="'Note Globale : ' + ${#numbers.formatDecimal(rapport.noteGlobale, 1, 2)} + ' / 10'"></p>
+        </td>
+        <td style="text-align:center;">
+            <p th:text="${rapport.auditeurPrenom + ' ' + rapport.auditeurNom}"></p>
+            <div class="signature-line"></div>
+            <p style="font-size:10px; color:#666;">Signature de l'auditeur</p>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>

@@ -8,12 +8,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity
-@Table(name = "audit_missions")
 @Data
+@EqualsAndHashCode(exclude = {"auditSession", "auditElements"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Entity
+@Table(name = "audit_missions")
 public class AuditMission {
 
     @Id

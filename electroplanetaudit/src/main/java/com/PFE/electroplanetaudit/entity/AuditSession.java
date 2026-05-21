@@ -7,12 +7,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity
-@Table(name = "audit_sessions")
 @Data
+@EqualsAndHashCode(exclude = {"mission", "scores"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Entity
+@Table(name = "audit_sessions")
 public class AuditSession {
 
     @Id

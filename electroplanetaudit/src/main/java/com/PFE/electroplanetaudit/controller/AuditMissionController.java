@@ -42,7 +42,7 @@ public class AuditMissionController {
 
     // ===== READ (By ID) - ADMIN ONLY =====
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('AUDITEUR')")
     public ResponseEntity<AuditMission> getById(@PathVariable Long id) {
         AuditMission mission = auditMissionService.findById(id);
         if (mission == null) {
@@ -80,9 +80,9 @@ public class AuditMissionController {
         return ResponseEntity.ok(auditMissionService.search(keyword));
     }
 
-    // ===== READ (Filtered with pagination) - ADMIN ONLY =====
+    // ===== READ (Filtered with pagination)
     @GetMapping("/filtered")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<AuditMission>> getFiltered(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,

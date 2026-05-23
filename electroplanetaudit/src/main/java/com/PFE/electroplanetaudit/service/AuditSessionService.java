@@ -8,7 +8,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.UUID;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +25,7 @@ public class AuditSessionService {
     private final ElementScoreRepository elementScoreRepository;
     private final AuditMissionRepository auditMissionRepository;
     private final AuditElementRepository auditElementRepository;
+    private final MediaEvidenceRepository mediaEvidenceRepository;
 
     // ===== START AUDIT FROM MISSION =====
     public AuditSession startFromMission(Long missionId, Long auditeurId) {
@@ -59,6 +66,9 @@ public class AuditSessionService {
                 .store(mission.getStore())
                 .auditeur(mission.getAuditeur())
                 .dateDebut(LocalDateTime.now())
+                .lastSaved(LocalDateTime.now())
+                .progressPercentage(0)
+                .completedElements(0)
                 .statut(SessionStatus.EN_COURS)
                 .build();
 
@@ -99,7 +109,8 @@ public class AuditSessionService {
 
         // Find or create ElementScore
         ElementScore elementScore = elementScoreRepository
-                .findByAuditSessionIdAndAuditElementId(sessionId, elementId);
+                .findByAuditSessionIdAndAuditElementId(sessionId, elementId)
+                .orElse(null);
 
         if (elementScore == null) {
             AuditElement element = auditElementRepository.findById(elementId)
@@ -113,16 +124,103 @@ public class AuditSessionService {
 
         elementScore.setScore(score);
         elementScore.setCommentaire(commentaire);
+        elementScore = elementScoreRepository.save(elementScore);
 
-        return elementScoreRepository.save(elementScore);
+        // ===== UPDATE SESSION PROGRESS =====
+
+        // Update last saved timestamp
+        session.setLastSaved(LocalDateTime.now());
+
+        // Get all scores for this session
+        List<ElementScore> allScores = elementScoreRepository.findByAuditSessionId(sessionId);
+
+        // Calculate completed elements (scores that are not null)
+        long completedCount = allScores.stream()
+                .filter(es -> es.getScore() != null)
+                .count();
+
+        session.setCompletedElements((int) completedCount);
+
+        // Calculate progress percentage
+        List<AuditElement> missionElements = session.getMission().getAuditElements();
+        int totalElements = missionElements.size();
+
+        if (totalElements > 0) {
+            int progress = (int) ((completedCount * 100) / totalElements);
+            session.setProgressPercentage(progress);
+        } else {
+            session.setProgressPercentage(0);
+        }
+
+        // Save session updates
+        auditSessionRepository.save(session);
+
+        return elementScore;
     }
 
     // ===== GRADE MULTIPLE ELEMENTS AT ONCE =====
     @Transactional
     public void gradeElements(Long sessionId, List<GradeRequest> grades) {
+        AuditSession session = auditSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Audit session not found"));
+
+        // Process each grade
         for (GradeRequest grade : grades) {
             gradeElement(sessionId, grade.getElementId(), grade.getScore(), grade.getCommentaire());
         }
+
+        // After all grades are saved, update session again
+        List<ElementScore> allScores = elementScoreRepository.findByAuditSessionId(sessionId);
+        long completedCount = allScores.stream()
+                .filter(es -> es.getScore() != null)
+                .count();
+
+        int totalElements = session.getMission().getAuditElements().size();
+        int progress = totalElements > 0 ? (int) ((completedCount * 100) / totalElements) : 0;
+
+        session.setCompletedElements((int) completedCount);
+        session.setProgressPercentage(progress);
+        session.setLastSaved(LocalDateTime.now());
+        auditSessionRepository.save(session);
+    }
+
+    public List<String> uploadImages(Long sessionId, Long elementId, List<MultipartFile> files) {
+        ElementScore elementScore = elementScoreRepository
+                .findByAuditSessionIdAndAuditElementId(sessionId, elementId)
+                .orElseThrow(() -> new RuntimeException("Element score not found"));
+
+        List<String> savedUrls = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            try {
+                String uploadDir = "uploads/images";
+                Path uploadPath = Path.of(uploadDir);
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
+
+                String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
+                Path filePath = uploadPath.resolve(filename);
+                Files.copy(file.getInputStream(), filePath);
+
+                String imageUrl = "/uploads/images/" + filename;
+
+                MediaEvidence evidence = MediaEvidence.builder()
+                        .imageUrl(imageUrl)
+                        .fileName(file.getOriginalFilename())
+                        .uploadedAt(LocalDateTime.now())
+                        .elementScore(elementScore)
+                        .build();
+
+                mediaEvidenceRepository.save(evidence);
+                savedUrls.add(imageUrl);
+
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to save image: " + e.getMessage());
+            }
+        }
+
+        return savedUrls;
     }
 
     // ===== SUBMIT AUDIT =====
@@ -159,7 +257,7 @@ public class AuditSessionService {
         }
 
         double averageScore = totalScore / gradedCount;
-        double globalScore = (averageScore / 10) * 100;  // Convert to percentage
+        double globalScore = averageScore;  // Convert to percentage
 
         // VALIDATION: Check if deadline is passed
         AuditMission mission = session.getMission();
@@ -286,5 +384,10 @@ public class AuditSessionService {
     @Transactional(readOnly = true)
     public List<Object[]> getElementPerformanceSummary() {
         return elementScoreRepository.getElementPerformanceSummary();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AuditSession> findByMissionId(Long missionId) {
+        return auditSessionRepository.findByMissionId(missionId);
     }
 }

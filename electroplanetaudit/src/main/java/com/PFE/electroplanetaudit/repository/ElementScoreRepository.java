@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ElementScoreRepository extends JpaRepository<ElementScore, Long> {
@@ -17,7 +18,7 @@ public interface ElementScoreRepository extends JpaRepository<ElementScore, Long
     List<ElementScore> findByAuditElementId(Long auditElementId);
 
     // Find score for specific session and element
-    ElementScore findByAuditSessionIdAndAuditElementId(Long sessionId, Long elementId);
+    Optional<ElementScore> findByAuditSessionIdAndAuditElementId(Long auditSessionId, Long auditElementId);
 
     // Get average score for a specific element (for BI)
     @Query("SELECT AVG(es.score) FROM ElementScore es WHERE es.auditElement.id = :elementId AND es.score IS NOT NULL")

@@ -33,7 +33,7 @@ public class MediaEvidenceService {
 
         // Find the element score
         ElementScore elementScore = elementScoreRepository
-                .findByAuditSessionIdAndAuditElementId(sessionId, elementId);
+                .findByAuditSessionIdAndAuditElementId(sessionId, elementId).orElse(null);
 
         if (elementScore == null) {
             throw new RuntimeException("Element score not found for session " + sessionId + " and element " + elementId);
@@ -94,7 +94,7 @@ public class MediaEvidenceService {
     @Transactional(readOnly = true)
     public List<MediaEvidence> getPhotosByElement(Long sessionId, Long elementId) {
         ElementScore elementScore = elementScoreRepository
-                .findByAuditSessionIdAndAuditElementId(sessionId, elementId);
+                .findByAuditSessionIdAndAuditElementId(sessionId, elementId).orElse(null);
 
         if (elementScore == null) {
             throw new RuntimeException("Element score not found");

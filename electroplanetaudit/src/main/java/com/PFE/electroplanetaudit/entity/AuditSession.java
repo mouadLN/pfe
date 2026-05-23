@@ -44,9 +44,20 @@ public class AuditSession {
     @JsonIgnoreProperties({"auditSession", "auditElements"})
     private AuditMission mission;
 
+    @JsonIgnoreProperties({"auditSession"})
     @OneToMany(mappedBy = "auditSession", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ElementScore> scores = new ArrayList<>();
 
     @Column(nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
+
+    @Column(columnDefinition = "TEXT")
+    private String savedProgress;
+
+    @Column(nullable = false)
+    private LocalDateTime lastSaved = LocalDateTime.now();
+
+    private Integer progressPercentage = 0;
+
+    private Integer completedElements = 0;
 }

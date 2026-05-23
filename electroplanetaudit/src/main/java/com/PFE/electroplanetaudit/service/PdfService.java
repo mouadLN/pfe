@@ -9,16 +9,15 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 import java.io.ByteArrayOutputStream;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.stream.Collectors;
-import org.springframework.core.io.ClassPathResource;
-import java.util.Base64;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.format.DateTimeFormatter;
+import java.util.Base64;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.transaction.annotation.Transactional;
-
 
 @Service
 @RequiredArgsConstructor
@@ -27,40 +26,52 @@ public class PdfService {
     private final AuditSessionRepository auditSessionRepository;
     private final TemplateEngine templateEngine;
 
+    private static final DateTimeFormatter FORMATTER =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+    // Base uploads directory — absolute path
+    private static final String PROJECT_BASE = System.getProperty("user.dir") + "/";
+
     private String getLogoBase64() {
         try {
             ClassPathResource resource = new ClassPathResource("static/images/logo.png");
             byte[] bytes = resource.getInputStream().readAllBytes();
             return "data:image/png;base64," + Base64.getEncoder().encodeToString(bytes);
         } catch (Exception e) {
+            System.out.println("Could not load logo: " + e.getMessage());
             return "";
         }
     }
 
     private String loadImageAsBase64(String imageUrl) {
         try {
-            // Extract file path from URL
-            // URL format: http://localhost:8080/uploads/audit-photos/filename.png
-            String filePath = imageUrl.replace("http://localhost:8080/uploads/", "uploads/");
-            Path path = Paths.get(filePath);
+            // Strip http://localhost:8080/ to get: uploads/images/filename.jpg
+            // Then use UPLOADS_BASE which already points to the uploads folder
+            // So we only need the part AFTER "uploads/"
+            String relativePath = imageUrl.replaceFirst("http://localhost:\\d+/", "");
+            Path path = Paths.get(PROJECT_BASE + relativePath);
+
+            System.out.println("Loading image from: " + path.toAbsolutePath());
+
             if (Files.exists(path)) {
                 byte[] bytes = Files.readAllBytes(path);
-                String extension = filePath.substring(filePath.lastIndexOf('.') + 1).toLowerCase();
-                String mimeType = extension.equals("png") ? "image/png" : "image/jpeg";
+                String fileName = path.getFileName().toString().toLowerCase();
+                String mimeType;
+                if (fileName.endsWith(".png")) mimeType = "image/png";
+                else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) mimeType = "image/jpeg";
+                else mimeType = "image/jpeg";
                 return "data:" + mimeType + ";base64," + Base64.getEncoder().encodeToString(bytes);
+            } else {
+                System.out.println("Image not found at: " + path.toAbsolutePath());
             }
         } catch (Exception e) {
             System.out.println("Could not load image: " + imageUrl + " - " + e.getMessage());
         }
-        return ""; // return empty if image not found
+        return "";
     }
-
-    private static final DateTimeFormatter FORMATTER =
-            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     @Transactional
     public byte[] generateRapport(Long missionId) {
-        // Find session by mission id
         AuditSession session = auditSessionRepository
                 .findFirstByMissionIdWithScores(missionId)
                 .orElseThrow(() -> new RuntimeException("Session not found for mission: " + missionId));
@@ -69,18 +80,13 @@ public class PdfService {
             throw new RuntimeException("Mission is not completed yet.");
         }
 
-        // Build DTO
         RapportDTO rapport = buildRapportDTO(session);
 
-
-
-        // Generate HTML from Thymeleaf template
         Context context = new Context();
         context.setVariable("rapport", rapport);
         context.setVariable("logoBase64", getLogoBase64());
         String html = templateEngine.process("rapport", context);
 
-        // Convert HTML to PDF
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             ITextRenderer renderer = new ITextRenderer();
@@ -94,7 +100,6 @@ public class PdfService {
     }
 
     private RapportDTO buildRapportDTO(AuditSession session) {
-        // Get mission element IDs directly from DB
         List<Long> missionElementIds = session.getMission().getAuditElements()
                 .stream()
                 .map(AuditElement::getId)
@@ -102,6 +107,7 @@ public class PdfService {
 
         System.out.println("Mission elements count: " + missionElementIds.size());
         System.out.println("Session scores count: " + session.getScores().size());
+        System.out.println("UPLOADS_BASE: " + PROJECT_BASE);
 
         List<RapportDTO.ElementScoreDTO> scoreDTOs = session.getScores().stream()
                 .filter(score -> score.getScore() != null)
@@ -123,8 +129,6 @@ public class PdfService {
                 .collect(Collectors.toList());
 
         System.out.println("Filtered scores count: " + scoreDTOs.size());
-
-
 
         return RapportDTO.builder()
                 .missionTitle(session.getMission().getTitle())

@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "media_evidences")
 @Data
+@EqualsAndHashCode(exclude = {"elementScore"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

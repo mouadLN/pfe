@@ -26,24 +26,15 @@ public class AuthService {
     public boolean validateCredentialsAndSendCode(String email, String rawPassword) {
         Optional<User> userOpt = userRepository.findByEmail(email);
 
-        if (userOpt.isEmpty()) {
-            return false;
-        }
+        if (userOpt.isEmpty()) return false;
 
         User user = userOpt.get();
 
-        if (!user.getActif()) {
-            return false;
-        }
+        if (!user.getActif()) return false;
 
-        if (!passwordEncoder.matches(rawPassword, user.getMotDePasse())) {
-            return false;
-        }
+        if (!passwordEncoder.matches(rawPassword, user.getMotDePasse())) return false;
 
-        // Use login-specific method
-        twoFAService.generateAndSendLoginCode(email);
-
-        return true;
+        return true; // Just validate credentials, controller handles sending the code
     }
 
     public String verify2FAAndGenerateToken(String email, String code) {

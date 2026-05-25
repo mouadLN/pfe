@@ -26,6 +26,7 @@ export const auditSessionService = {
     
     removeImage: (sessionId, elementId, imageIndex) =>
         api.delete(`/api/audit-sessions/${sessionId}/images/${elementId}?imageIndex=${imageIndex}`),
+    
     getAll: () =>
-    api.get("/api/audit-sessions"),
+        api.get("/api/audit-sessions"),
 };

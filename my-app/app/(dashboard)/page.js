@@ -6,6 +6,7 @@ import Admin from "@/components/dashboardadministrateur"
 import Auditeur from "@/components/dashboardauditeur"
 
 export default function Home() {
+  
   const [role, setRole] = useState(null)
   const router = useRouter()
 

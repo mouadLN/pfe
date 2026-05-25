@@ -7,31 +7,31 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, Edit, CheckCircle, Upload, X } from "lucide-react";
+import { Loader2, Upload, X, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { auditSessionService } from "@/services/auditSessionService";
 
-export function GradeCard({ element, score, comment, images = [], onSave, sessionId }) {
+export function GradeCard({ element, score, comment, images = [], onScoreChange, onCommentChange, sessionId }) {
     const [localScore, setLocalScore] = useState(score || "");
     const [localComment, setLocalComment] = useState(comment || "");
     const [localImages, setLocalImages] = useState(images || []);
-    const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState([]);
 
     useEffect(() => {
         setLocalScore(score || "");
         setLocalComment(comment || "");
         setLocalImages(images || []);
-    }, [score, comment, JSON.stringify(images)]); // ← stringify to compare by value
+    }, [score, comment, JSON.stringify(images)]);
 
-    const handleSave = async () => {
-        if (!localScore || localScore < 1 || localScore > 10) return;
-        setSaving(true);
-        await onSave(element.id, parseInt(localScore), localComment);
-        setSaving(false);
-        setIsEditing(false);
+    const handleScoreChange = (value) => {
+        setLocalScore(value);
+        onScoreChange(element.id, parseInt(value) || null);
+    };
+
+    const handleCommentChange = (value) => {
+        setLocalComment(value);
+        onCommentChange(element.id, value);
     };
 
     const handleFileSelect = (e) => {
@@ -44,8 +44,7 @@ export function GradeCard({ element, score, comment, images = [], onSave, sessio
         if (selectedFiles.length === 0) return;
         setUploading(true);
         const formData = new FormData();
-        selectedFiles.forEach(file => formData.append("images", file));
-
+        selectedFiles.forEach(file => formData.append("files", file));
         try {
             const response = await auditSessionService.uploadImages(sessionId, element.id, formData);
             setLocalImages(response.data.images);
@@ -66,60 +65,40 @@ export function GradeCard({ element, score, comment, images = [], onSave, sessio
         }
     };
 
-    const isGraded = score && score >= 1;
+    const isGraded = localScore && parseInt(localScore) >= 1;
 
     return (
-        <Card>
+        <Card className={cn(isGraded && "border-green-200")}>
             <CardHeader>
                 <div className="flex items-start justify-between flex-wrap gap-2">
                     <div className="flex-1">
                         <CardTitle className="text-lg">{element.nom}</CardTitle>
                         <CardDescription>{element.description || "Aucune description"}</CardDescription>
                     </div>
-                    {isGraded && !isEditing && (
+                    {isGraded && (
                         <Badge variant="success" className="gap-1">
                             <CheckCircle className="h-3 w-3" />
-                            Note: {score}/10
+                            {localScore}/10
                         </Badge>
                     )}
-                    {isEditing && <Badge variant="warning">Modification</Badge>}
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
+
                 {/* Score */}
                 <div>
                     <Label>Note (1-10) <span className="text-destructive">*</span></Label>
-                    <div className="flex items-center gap-3 mt-1 flex-wrap">
+                    <div className="flex items-center gap-3 mt-1">
                         <input
                             type="number"
                             min="1"
                             max="10"
                             value={localScore}
-                            onChange={(e) => setLocalScore(e.target.value)}
-                            disabled={!isEditing && isGraded}
-                            className={cn(
-                                "w-24 px-3 py-2 border rounded-md",
-                                !isEditing && isGraded && "bg-muted text-muted-foreground"
-                            )}
+                            onChange={(e) => handleScoreChange(e.target.value)}
+                            className="w-24 px-3 py-2 border rounded-md"
+                            placeholder="1-10"
                         />
-                        {!isEditing && isGraded ? (
-                            <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                                <Edit className="h-3 w-3 mr-1" /> Modifier
-                            </Button>
-                        ) : (
-                            <Button size="sm" onClick={handleSave} disabled={saving || !localScore}>
-                                {saving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
-                                Sauvegarder
-                            </Button>
-                        )}
-                        {isEditing && (
-                            <Button size="sm" variant="ghost" onClick={() => {
-                                setIsEditing(false);
-                                setLocalScore(score || "");
-                            }}>
-                                Annuler
-                            </Button>
-                        )}
+                        <span className="text-sm text-muted-foreground">/ 10</span>
                     </div>
                 </div>
 
@@ -128,15 +107,10 @@ export function GradeCard({ element, score, comment, images = [], onSave, sessio
                     <Label>Commentaire</Label>
                     <Textarea
                         value={localComment}
-                        onChange={(e) => setLocalComment(e.target.value)}
+                        onChange={(e) => handleCommentChange(e.target.value)}
                         placeholder="Ajouter un commentaire..."
                         className="mt-1"
                         rows={2}
-                        onBlur={() => {
-                            if (localComment !== comment && (localScore || score)) {
-                                onSave(element.id, parseInt(localScore) || score || 0, localComment);
-                            }
-                        }}
                     />
                 </div>
 
@@ -173,7 +147,9 @@ export function GradeCard({ element, score, comment, images = [], onSave, sessio
                                 />
                                 {selectedFiles.length > 0 && (
                                     <Button size="sm" onClick={handleUpload} disabled={uploading}>
-                                        {uploading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
+                                        {uploading
+                                            ? <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                            : <Upload className="h-3 w-3 mr-1" />}
                                         Upload ({selectedFiles.length})
                                     </Button>
                                 )}
@@ -184,6 +160,7 @@ export function GradeCard({ element, score, comment, images = [], onSave, sessio
                         </div>
                     )}
                 </div>
+
             </CardContent>
         </Card>
     );

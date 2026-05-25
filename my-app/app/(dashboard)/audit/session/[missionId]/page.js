@@ -76,34 +76,39 @@ export default function AuditSessionPage() {
         }
     };
 
-    const handleSaveScore = async (elementId, score, comment) => {
-        if (!session) return;
-        try {
-            await auditSessionService.gradeElement(session.id, elementId, score, comment || "");
-            setScores(prev => ({ ...prev, [elementId]: score }));
-            setComments(prev => ({ ...prev, [elementId]: comment || "" }));
-            setSuccess("Sauvegardé");
-            setTimeout(() => setSuccess(""), 2000);
-        } catch (err) {
-            setError("Erreur lors de la sauvegarde");
-        }
-    };
+const handleScoreChange = (elementId, score) => {
+    setScores(prev => ({ ...prev, [elementId]: score }))
+}
+
+const handleCommentChange = (elementId, comment) => {
+    setComments(prev => ({ ...prev, [elementId]: comment }))
+}
 
     const handleSubmitAudit = async () => {
-        const allGraded = elements.every(el => scores[el.id] && scores[el.id] >= 1);
-        if (!allGraded) return setError("Veuillez noter tous les éléments");
-        if (!confirm("Terminer l'audit ?")) return;
+    const allGraded = elements.every(el => scores[el.id] && scores[el.id] >= 1)
+    if (!allGraded) return setError("Veuillez noter tous les éléments avant de soumettre.")
+    if (!confirm("Terminer l'audit ? Cette action est irréversible.")) return
 
-        setSubmitting(true);
-        try {
-            await auditSessionService.submitAudit(session.id);
-            router.push("/missions/auditeur");
-        } catch (err) {
-            setError("Erreur lors de la soumission");
-        } finally {
-            setSubmitting(false);
+    setSubmitting(true)
+    try {
+        // Save all scores first
+        for (const el of elements) {
+            await auditSessionService.gradeElement(
+                session.id,
+                el.id,
+                scores[el.id],
+                comments[el.id] || ""
+            )
         }
-    };
+        // Then submit
+        await auditSessionService.submitAudit(session.id)
+        router.push("/missions/auditeur")
+    } catch (err) {
+        setError("Erreur lors de la soumission")
+    } finally {
+        setSubmitting(false)
+    }
+}
 
     // ── Guards — all at the bottom after handlers ──
     if (loading) return (
@@ -130,70 +135,39 @@ export default function AuditSessionPage() {
     const progress = elements.length ? ((completedElements.length / elements.length) * 100) : 0;
 
     return (
-        <div className="container mx-auto py-8 px-4 max-w-4xl">
-            <AuditHeader mission={mission} progress={progress} isTerminated={false} />
+    <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <AuditHeader mission={mission} progress={progress} isTerminated={false} />
 
-            {error && <div className="mb-4 p-3 bg-red-50 text-red-800 rounded-lg">{error}</div>}
-            {success && <div className="mb-4 p-3 bg-green-50 text-green-800 rounded-lg">{success}</div>}
+        {error && <div className="mb-4 p-3 bg-red-50 text-red-800 rounded-lg">{error}</div>}
 
-            <div className="flex flex-col lg:flex-row gap-6">
-                <SessionFilters
-                    activeFilter={activeFilter}
-                    setActiveFilter={setActiveFilter}
-                    pendingCount={pendingElements.length}
-                    completedCount={completedElements.length}
+        <div className="space-y-4">
+            {elements.map(el => (
+                <GradeCard
+                    key={el.id}
+                    element={el}
+                    score={scores[el.id]}
+                    comment={comments[el.id] || ""}
+                    images={images[el.id] || []}
+                    onScoreChange={handleScoreChange}
+                    onCommentChange={handleCommentChange}
+                    sessionId={session.id}
                 />
-
-                <div className="flex-1 space-y-4">
-                    {activeFilter === "pending" && pendingElements.map(el => (
-                        <GradeCard
-                            key={el.id}
-                            element={el}
-                            score={scores[el.id]}
-                            comment={comments[el.id] || ""}
-                            onSave={handleSaveScore}
-                            sessionId={session.id}
-                        />
-                    ))}
-
-                    {activeFilter === "completed" && completedElements.map(el => (
-                        <GradeCard
-                            key={el.id}
-                            element={el}
-                            score={scores[el.id]}
-                            comment={comments[el.id] || ""}
-                            images={images[el.id] || []}
-                            onSave={handleSaveScore}
-                            sessionId={session.id}
-                        />
-                    ))}
-
-                    {activeFilter === "pending" && pendingElements.length === 0 && (
-                        <div className="text-center py-12 text-muted-foreground">
-                            🎉 Tous les éléments sont notés !
-                        </div>
-                    )}
-                    {activeFilter === "completed" && completedElements.length === 0 && (
-                        <div className="text-center py-12 text-muted-foreground">
-                            📋 Aucun élément noté
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="mt-8 pt-6 border-t">
-                <button
-                    onClick={handleSubmitAudit}
-                    disabled={progress < 100 || submitting}
-                    className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-medium disabled:opacity-50"
-                >
-                    {submitting
-                        ? "Envoi en cours..."
-                        : progress === 100
-                            ? "Terminer l'audit"
-                            : `${Math.round(progress)}% complété`}
-                </button>
-            </div>
+            ))}
         </div>
-    );
+
+        <div className="mt-8 pt-6 border-t">
+            <button
+                onClick={handleSubmitAudit}
+                disabled={progress < 100 || submitting}
+                className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-medium disabled:opacity-50"
+            >
+                {submitting
+                    ? "Envoi en cours..."
+                    : progress === 100
+                        ? "Terminer l'audit"
+                        : `${Math.round(progress)}% complété — notez tous les éléments`}
+            </button>
+        </div>
+    </div>
+)
 }

@@ -15,7 +15,7 @@ export const missionService = {
 
   // Get missions by auditor
   getByAuditeur: (userCode) =>
-    api.get(`/api/audit-missions/auditeur/${userCode}`),
+    api.get(`/api/audit-missions/auditeur/me/${userCode}`),
 
   // Get missions by store
   getByStore: (storeId) =>
